@@ -17,7 +17,7 @@ class GeomatchHelper:
         if "/app/recs" not in self.browser.current_url:
             self._get_home_page()
 
-    def like(self)->bool:
+    def like(self, current_reloads):
         try:
             # need to find better way
             if 'profile' in self.browser.current_url:
@@ -44,12 +44,13 @@ class GeomatchHelper:
                 action.drag_and_drop_by_offset(card, 200, 0).perform()
 
             time.sleep(1)
-            return True
+            return True, current_reloads
 
         except (TimeoutException, ElementClickInterceptedException):
             self._get_home_page()
+            current_reloads+=1
 
-        return False
+        return False, current_reloads
 
     def dislike(self):
         try:

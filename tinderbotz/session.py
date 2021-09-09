@@ -1,4 +1,6 @@
 # Selenium: automation of browser
+import sys
+
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
@@ -201,8 +203,8 @@ class Session:
         # store its userdata
         StorageHelper.store_match(match=match, directory='data/{}'.format(filename), filename=filename)
 
-    def like(self, amount=1, ratio='100%', sleep=1):
-
+    def like(self, amount=1, ratio='100%', sleep=2, reloads_limit=10):
+        reloads = 0
         ratio = float(ratio.split('%')[0]) / 100
 
         if self._is_logged_in():
@@ -212,8 +214,12 @@ class Session:
             self._handle_potential_popups()
             print("\nLiking profiles started.")
             while amount_liked < amount:
+                time.sleep(random.random()*sleep+0.5)
+                if reloads >= reloads_limit:
+                    sys.exit()
                 if random.random() <= ratio:
-                    if helper.like():
+                    state, reloads = helper.like(current_reloads=reloads)
+                    if state:
                         amount_liked += 1
                         # update for stats after session ended
                         self.session_data['like'] += 1
@@ -225,7 +231,6 @@ class Session:
                     self.session_data['dislike'] += 1
 
                 self._handle_potential_popups()
-                time.sleep(sleep)
 
             self._print_liked_stats()
 
