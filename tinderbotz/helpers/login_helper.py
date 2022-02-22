@@ -1,7 +1,7 @@
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException, StaleElementReferenceException
+from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException, StaleElementReferenceException, NoSuchElementException
 from selenium.webdriver.common.keys import Keys
 from tinderbotz.helpers.xpaths import content
 import time
@@ -199,10 +199,29 @@ class LoginHelper:
         return 'app' in self.browser.current_url
 
     def _handle_popups(self):
+        for _ in range(20):
+            if not self._is_logged_in():
+                time.sleep(1.2)
+            else:
+                break
+
+        if not self._is_logged_in():
+            print('Still not logged in ... ?')
+            input('Proceed manually and press ENTER to continue\n')
+
         time.sleep(2)
         self._accept_cookies()
         self._accept_location_notification()
         self._deny_overlayed_notifications()
+
+        self.browser.execute_cdp_cmd(
+            "Browser.grantPermissions",
+            {
+                "origin": "https://www.tinder.com",
+                "permissions": ["geolocation"]
+            },
+        )
+
         time.sleep(5)
 
     def _accept_location_notification(self):
@@ -242,15 +261,20 @@ class LoginHelper:
             buttons = self.browser.find_elements_by_xpath(xpath)
 
             for button in buttons:
-                text_span = button.find_element_by_xpath('.//span').text
-                if 'i accept' in text_span.lower():
-                    button.click()
-                    break
-            print("COOKIES ACCEPTED.")
+                try:
+                    text_span = button.find_element_by_xpath('.//span').text
+                    if 'accept' in text_span.lower():
+                        button.click()
+                        print("COOKIES ACCEPTED.")
+                        break
+                except NoSuchElementException:
+                    pass
+
         except TimeoutException:
             print(
                 "ACCEPTING COOKIES: Loading took too much time! Element probably not presented, so we continue.")
-        except:
+        except Exception as e:
+            print("Error cookies", e)
             pass
 
     def _change_focus_to_pop_up(self):
